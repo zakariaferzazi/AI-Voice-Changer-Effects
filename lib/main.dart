@@ -9,6 +9,7 @@ import 'package:voice_changer_app/services/elevenlabs_service.dart';
 import 'package:voice_changer_app/services/text_to_speech_service.dart';
 import 'package:voice_changer_app/services/voice_effects_service.dart';
 import 'package:voice_changer_app/services/file_service.dart';
+import 'package:voice_changer_app/screens/celebrity_voice/celebrity_voice_demo_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -117,6 +118,20 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title:
             const Text('Voice Changer – AI Celebrity Voice & Text-to-Speech'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.preview),
+            tooltip: 'Preview Features',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CelebrityVoiceDemoScreen(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: PageView(
         controller: _pageController,

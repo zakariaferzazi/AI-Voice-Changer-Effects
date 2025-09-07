@@ -1,29 +1,35 @@
+import 'package:flutter/material.dart';
 import 'dart:math';
 
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:voice_changer_app/services/audio_service.dart';
-import 'package:voice_changer_app/services/elevenlabs_service.dart';
-import 'package:voice_changer_app/services/file_service.dart';
-import 'package:voice_changer_app/utils/constants.dart';
-
-class CelebrityVoiceScreen extends StatefulWidget {
-  const CelebrityVoiceScreen({super.key});
+class CelebrityVoiceDemoScreen extends StatefulWidget {
+  const CelebrityVoiceDemoScreen({super.key});
 
   @override
-  State<CelebrityVoiceScreen> createState() => _CelebrityVoiceScreenState();
+  State<CelebrityVoiceDemoScreen> createState() =>
+      _CelebrityVoiceDemoScreenState();
 }
 
-class _CelebrityVoiceScreenState extends State<CelebrityVoiceScreen>
+class _CelebrityVoiceDemoScreenState extends State<CelebrityVoiceDemoScreen>
     with TickerProviderStateMixin {
-  String? _selectedVoiceId;
-  String? _selectedVoiceName;
-  String? _convertedAudioPath;
-  bool _apiKeyWarningShown = false;
   late AnimationController _pulseController;
   late AnimationController _waveController;
   late Animation<double> _pulseAnimation;
   late Animation<double> _waveAnimation;
+
+  bool _isRecording = false;
+  bool _isPlaying = false;
+  String? _selectedVoice;
+  bool _isConverting = false;
+  bool _conversionComplete = false;
+
+  final List<Map<String, String>> _demoVoices = [
+    {'id': '1', 'name': 'Morgan Freeman'},
+    {'id': '2', 'name': 'Scarlett Johansson'},
+    {'id': '3', 'name': 'Robert Downey Jr.'},
+    {'id': '4', 'name': 'Emma Stone'},
+    {'id': '5', 'name': 'Benedict Cumberbatch'},
+    {'id': '6', 'name': 'Jennifer Lawrence'},
+  ];
 
   @override
   void initState() {
@@ -55,123 +61,79 @@ class _CelebrityVoiceScreenState extends State<CelebrityVoiceScreen>
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_apiKeyWarningShown) {
-      final elevenLabsService =
-          Provider.of<ElevenLabsService>(context, listen: false);
-      if (elevenLabsService.elevenLabsApiKey == 'YOUR_ELEVENLABS_API_KEY') {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _showApiKeyWarning();
-        });
-        _apiKeyWarningShown = true;
-      }
-    }
-  }
-
-  void _showApiKeyWarning() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
-            SizedBox(width: 12),
-            Text('API Key Required'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'To use celebrity voice conversion, you need to set up your ElevenLabs API key.',
-              style: TextStyle(fontSize: 16),
-            ),
-            SizedBox(height: 16),
-            Container(
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'Update lib/utils/constants.dart with your API key',
-                style: TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 14,
-                  color: Colors.grey[700],
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text('Got it'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Consumer3<AudioService, ElevenLabsService, FileService>(
-      builder: (context, audioService, elevenLabsService, fileService, child) {
-        final audioState = audioService.audioState;
-        final isRecording = audioState == AudioState.recording;
-        final isPlaying = audioState == AudioState.playing;
-        final hasRecording = audioService.recordedFilePath != null;
-
-        return Scaffold(
-          body: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.deepPurple.shade50,
-                  Colors.white,
-                  Colors.amber.shade50,
-                ],
-              ),
-            ),
-            child: SafeArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Header Section
-                    _buildHeader(),
-                    const SizedBox(height: 30),
-
-                    // Recording Section
-                    _buildRecordingSection(
-                        audioService, isRecording, isPlaying, hasRecording),
-                    const SizedBox(height: 30),
-
-                    // Voice Selection Section
-                    _buildVoiceSelectionSection(elevenLabsService),
-                    const SizedBox(height: 30),
-
-                    // Conversion Section
-                    _buildConversionSection(audioService, elevenLabsService,
-                        fileService, hasRecording),
-                    const SizedBox(height: 20),
-
-                    // Result Section
-                    if (_convertedAudioPath != null)
-                      _buildResultSection(audioService, fileService, isPlaying),
-                  ],
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.deepPurple.shade50,
+              Colors.white,
+              Colors.amber.shade50,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Demo Header
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.blue),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Demo Mode - Experience the UI without API keys',
+                          style: TextStyle(
+                            color: Colors.blue.shade700,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.close, color: Colors.blue),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+                const SizedBox(height: 20),
+
+                // Main Header
+                _buildHeader(),
+                const SizedBox(height: 30),
+
+                // Recording Section
+                _buildRecordingSection(),
+                const SizedBox(height: 30),
+
+                // Voice Selection Section
+                _buildVoiceSelectionSection(),
+                const SizedBox(height: 30),
+
+                // Conversion Section
+                _buildConversionSection(),
+                const SizedBox(height: 20),
+
+                // Result Section
+                if (_conversionComplete) _buildResultSection(),
+              ],
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -254,8 +216,7 @@ class _CelebrityVoiceScreenState extends State<CelebrityVoiceScreen>
     );
   }
 
-  Widget _buildRecordingSection(AudioService audioService, bool isRecording,
-      bool isPlaying, bool hasRecording) {
+  Widget _buildRecordingSection() {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -288,48 +249,34 @@ class _CelebrityVoiceScreenState extends State<CelebrityVoiceScreen>
           SizedBox(height: 20),
 
           // Audio Visualization
-          if (isRecording)
-            Container(
-              height: 80,
-              child: StreamBuilder<double>(
-                stream: audioService.decibelStream,
-                builder: (context, snapshot) {
-                  final decibels = snapshot.data ?? -100.0;
-                  double normalizedDecibels =
-                      ((decibels + 60) / 60).clamp(0.0, 1.0);
-
-                  return AnimatedBuilder(
+          Container(
+            height: 80,
+            child: _isRecording
+                ? AnimatedBuilder(
                     animation: _waveAnimation,
                     builder: (context, child) {
                       return CustomPaint(
                         painter: AudioWavePainter(
-                          amplitude: normalizedDecibels,
+                          amplitude:
+                              0.7 + (sin(_waveAnimation.value * 2 * pi) * 0.3),
                           wavePhase: _waveAnimation.value,
                         ),
                         size: Size.infinite,
                       );
                     },
-                  );
-                },
-              ),
-            )
-          else
-            Container(
-              height: 80,
-              child: Center(
-                child: Text(
-                  hasRecording
-                      ? '✓ Recording ready for conversion'
-                      : 'Tap the microphone to start recording',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: hasRecording ? Colors.green : Colors.grey[600],
-                    fontWeight:
-                        hasRecording ? FontWeight.w600 : FontWeight.normal,
+                  )
+                : Center(
+                    child: Text(
+                      _isRecording
+                          ? 'Recording in progress...'
+                          : 'Tap the microphone to start recording',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey[600],
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ),
+          ),
 
           SizedBox(height: 20),
 
@@ -342,20 +289,20 @@ class _CelebrityVoiceScreenState extends State<CelebrityVoiceScreen>
                 animation: _pulseAnimation,
                 builder: (context, child) {
                   return Transform.scale(
-                    scale: isRecording ? _pulseAnimation.value : 1.0,
+                    scale: _isRecording ? _pulseAnimation.value : 1.0,
                     child: Container(
                       width: 80,
                       height: 80,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: isRecording
+                          colors: _isRecording
                               ? [Colors.red, Colors.red.shade700]
                               : [Colors.blue, Colors.blue.shade700],
                         ),
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: (isRecording ? Colors.red : Colors.blue)
+                            color: (_isRecording ? Colors.red : Colors.blue)
                                 .withOpacity(0.3),
                             blurRadius: 15,
                             offset: Offset(0, 5),
@@ -366,11 +313,22 @@ class _CelebrityVoiceScreenState extends State<CelebrityVoiceScreen>
                         color: Colors.transparent,
                         child: InkWell(
                           borderRadius: BorderRadius.circular(40),
-                          onTap: isRecording
-                              ? audioService.stopRecording
-                              : audioService.startRecording,
+                          onTap: () {
+                            setState(() {
+                              _isRecording = !_isRecording;
+                              if (!_isRecording) {
+                                // Simulate recording completion
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Demo: Recording completed!'),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              }
+                            });
+                          },
                           child: Icon(
-                            isRecording ? Icons.stop : Icons.mic,
+                            _isRecording ? Icons.stop : Icons.mic,
                             color: Colors.white,
                             size: 32,
                           ),
@@ -387,14 +345,14 @@ class _CelebrityVoiceScreenState extends State<CelebrityVoiceScreen>
                 height: 80,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: isPlaying
+                    colors: _isPlaying
                         ? [Colors.orange, Colors.orange.shade700]
                         : [Colors.green, Colors.green.shade700],
                   ),
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: (isPlaying ? Colors.orange : Colors.green)
+                      color: (_isPlaying ? Colors.orange : Colors.green)
                           .withOpacity(0.3),
                       blurRadius: 15,
                       offset: Offset(0, 5),
@@ -405,14 +363,24 @@ class _CelebrityVoiceScreenState extends State<CelebrityVoiceScreen>
                   color: Colors.transparent,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(40),
-                    onTap: hasRecording && !isRecording
-                        ? (isPlaying
-                            ? audioService.stopPlayback
-                            : () => audioService.startPlayback(
-                                filePath: audioService.recordedFilePath!))
-                        : null,
+                    onTap: () {
+                      setState(() {
+                        _isPlaying = !_isPlaying;
+                      });
+
+                      if (_isPlaying) {
+                        // Auto-stop after 3 seconds
+                        Future.delayed(Duration(seconds: 3), () {
+                          if (mounted) {
+                            setState(() {
+                              _isPlaying = false;
+                            });
+                          }
+                        });
+                      }
+                    },
                     child: Icon(
-                      isPlaying ? Icons.stop : Icons.play_arrow,
+                      _isPlaying ? Icons.stop : Icons.play_arrow,
                       color: Colors.white,
                       size: 32,
                     ),
@@ -422,7 +390,7 @@ class _CelebrityVoiceScreenState extends State<CelebrityVoiceScreen>
             ],
           ),
 
-          if (hasRecording)
+          if (!_isRecording)
             Padding(
               padding: const EdgeInsets.only(top: 16),
               child: Container(
@@ -433,7 +401,7 @@ class _CelebrityVoiceScreenState extends State<CelebrityVoiceScreen>
                   border: Border.all(color: Colors.green.shade200),
                 ),
                 child: Text(
-                  'Recording: ${audioService.recordedFilePath!.split('/').last}',
+                  'Demo Recording: sample_voice_recording.aac',
                   style: TextStyle(
                     color: Colors.green.shade700,
                     fontSize: 14,
@@ -447,7 +415,7 @@ class _CelebrityVoiceScreenState extends State<CelebrityVoiceScreen>
     );
   }
 
-  Widget _buildVoiceSelectionSection(ElevenLabsService elevenLabsService) {
+  Widget _buildVoiceSelectionSection() {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -463,60 +431,6 @@ class _CelebrityVoiceScreenState extends State<CelebrityVoiceScreen>
       ),
       child: Column(
         children: [
-          InkWell(
-            onTap: () {
-              print('ElevenLabs Service Debug:');
-              print('API Key: ${elevenLabsService.elevenLabsApiKey}');
-              print('Is Loading: ${elevenLabsService.isLoading}');
-              print('Voices Count: ${elevenLabsService.voices.length}');
-              print('Voices: ${elevenLabsService.voices}');
-
-              // Show debug info in a dialog
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: Text('Debug Info'),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('API Key: ${elevenLabsService.elevenLabsApiKey}'),
-                      SizedBox(height: 8),
-                      Text('Is Loading: ${elevenLabsService.isLoading}'),
-                      SizedBox(height: 8),
-                      Text('Voices Count: ${elevenLabsService.voices.length}'),
-                      SizedBox(height: 8),
-                      Text('Voices: ${elevenLabsService.voices}'),
-                    ],
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text('Close'),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        elevenLabsService.fetchVoices();
-                      },
-                      child: Text('Retry Fetch'),
-                    ),
-                  ],
-                ),
-              );
-            },
-            child: Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade100,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                "Debug Service Info",
-                style: TextStyle(color: Colors.blue.shade700),
-              ),
-            ),
-          ),
           Row(
             children: [
               Icon(Icons.person_rounded, color: Colors.deepPurple, size: 24),
@@ -532,100 +446,58 @@ class _CelebrityVoiceScreenState extends State<CelebrityVoiceScreen>
             ],
           ),
           SizedBox(height: 20),
-          if (elevenLabsService.isLoading)
-            Column(
-              children: [
-                CircularProgressIndicator(color: Colors.deepPurple),
-                SizedBox(height: 16),
-                Text(
-                  'Loading celebrity voices...',
-                  style: TextStyle(color: Colors.grey[600]),
-                ),
-              ],
-            )
-          else if (elevenLabsService.voices.isEmpty)
-            Container(
-              padding: EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange.shade200),
-              ),
-              child: Column(
-                children: [
-                  Icon(Icons.warning_amber_rounded,
-                      color: Colors.orange, size: 32),
-                  SizedBox(height: 8),
-                  Text(
-                    'No celebrity voices available',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.orange.shade700,
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                isExpanded: true,
+                hint: Row(
+                  children: [
+                    Icon(Icons.stars, color: Colors.deepPurple),
+                    SizedBox(width: 8),
+                    Text(
+                      'Select a Celebrity Voice',
+                      style: TextStyle(fontSize: 16, color: Colors.grey[700]),
                     ),
-                  ),
-                  Text(
-                    'Please check your API key configuration',
-                    style: TextStyle(color: Colors.orange.shade600),
-                  ),
-                ],
-              ),
-            )
-          else
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  isExpanded: true,
-                  hint: Row(
-                    children: [
-                      Icon(Icons.stars, color: Colors.deepPurple),
-                      SizedBox(width: 8),
-                      Text(
-                        'Select a Celebrity Voice',
-                        style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-                      ),
-                    ],
-                  ),
-                  value: _selectedVoiceId,
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      _selectedVoiceId = newValue;
-                      _selectedVoiceName = elevenLabsService.voices.firstWhere(
-                          (voice) => voice['voice_id'] == newValue)['name'];
-                      _convertedAudioPath = null; // Reset converted audio
-                    });
-                  },
-                  items: elevenLabsService.voices
-                      .map<DropdownMenuItem<String>>((voice) {
-                    return DropdownMenuItem<String>(
-                      value: voice['voice_id'],
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: Colors.deepPurple,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          SizedBox(width: 12),
-                          Text(
-                            voice['name'],
-                            style: TextStyle(fontSize: 16),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
+                  ],
                 ),
+                value: _selectedVoice,
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _selectedVoice = newValue;
+                    _conversionComplete = false; // Reset result
+                  });
+                },
+                items: _demoVoices.map<DropdownMenuItem<String>>((voice) {
+                  return DropdownMenuItem<String>(
+                    value: voice['id'],
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: Colors.deepPurple,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Text(
+                          voice['name']!,
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
               ),
             ),
-          if (_selectedVoiceName != null)
+          ),
+          if (_selectedVoice != null)
             Padding(
               padding: const EdgeInsets.only(top: 16),
               child: Container(
@@ -636,7 +508,7 @@ class _CelebrityVoiceScreenState extends State<CelebrityVoiceScreen>
                   border: Border.all(color: Colors.deepPurple.shade200),
                 ),
                 child: Text(
-                  'Selected: $_selectedVoiceName',
+                  'Selected: ${_demoVoices.firstWhere((v) => v['id'] == _selectedVoice)['name']}',
                   style: TextStyle(
                     color: Colors.deepPurple.shade700,
                     fontSize: 14,
@@ -650,15 +522,9 @@ class _CelebrityVoiceScreenState extends State<CelebrityVoiceScreen>
     );
   }
 
-  Widget _buildConversionSection(
-      AudioService audioService,
-      ElevenLabsService elevenLabsService,
-      FileService fileService,
-      bool hasRecording) {
-    final canConvert = hasRecording &&
-        _selectedVoiceId != null &&
-        !elevenLabsService.isLoading &&
-        audioService.audioState != AudioState.recording;
+  Widget _buildConversionSection() {
+    final canConvert =
+        _selectedVoice != null && !_isRecording && !_isConverting;
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -690,7 +556,7 @@ class _CelebrityVoiceScreenState extends State<CelebrityVoiceScreen>
             ],
           ),
           SizedBox(height: 20),
-          if (elevenLabsService.isLoading)
+          if (_isConverting)
             Column(
               children: [
                 Container(
@@ -721,9 +587,7 @@ class _CelebrityVoiceScreenState extends State<CelebrityVoiceScreen>
               width: double.infinity,
               height: 60,
               child: ElevatedButton(
-                onPressed: canConvert
-                    ? () => _convertVoice(audioService, elevenLabsService)
-                    : null,
+                onPressed: canConvert ? _simulateConversion : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor:
                       canConvert ? Colors.deepPurple : Colors.grey.shade300,
@@ -765,8 +629,10 @@ class _CelebrityVoiceScreenState extends State<CelebrityVoiceScreen>
     );
   }
 
-  Widget _buildResultSection(
-      AudioService audioService, FileService fileService, bool isPlaying) {
+  Widget _buildResultSection() {
+    final selectedVoiceName =
+        _demoVoices.firstWhere((v) => v['id'] == _selectedVoice)['name'];
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -811,7 +677,7 @@ class _CelebrityVoiceScreenState extends State<CelebrityVoiceScreen>
             child: Column(
               children: [
                 Text(
-                  'Your voice has been transformed into $_selectedVoiceName!',
+                  'Your voice has been transformed into $selectedVoiceName!',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -821,7 +687,7 @@ class _CelebrityVoiceScreenState extends State<CelebrityVoiceScreen>
                 ),
                 SizedBox(height: 8),
                 Text(
-                  _convertedAudioPath!.split('/').last,
+                  'demo_${selectedVoiceName?.replaceAll(' ', '_').toLowerCase()}_conversion.mp3',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[600],
@@ -839,14 +705,18 @@ class _CelebrityVoiceScreenState extends State<CelebrityVoiceScreen>
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: isPlaying
-                      ? audioService.stopPlayback
-                      : () => audioService.startPlayback(
-                          filePath: _convertedAudioPath!),
-                  icon: Icon(isPlaying ? Icons.stop : Icons.play_arrow),
-                  label: Text(isPlaying ? 'Stop' : 'Play Result'),
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Demo: Playing converted audio...'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  },
+                  icon: Icon(Icons.play_arrow),
+                  label: Text('Play Result'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isPlaying ? Colors.orange : Colors.green,
+                    backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -858,7 +728,14 @@ class _CelebrityVoiceScreenState extends State<CelebrityVoiceScreen>
               SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () => _saveConvertedAudio(fileService),
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Demo: Audio saved to My Files!'),
+                        backgroundColor: Colors.deepPurple,
+                      ),
+                    );
+                  },
                   icon: Icon(Icons.save),
                   label: Text('Save'),
                   style: ElevatedButton.styleFrom(
@@ -878,93 +755,34 @@ class _CelebrityVoiceScreenState extends State<CelebrityVoiceScreen>
     );
   }
 
-  Future<void> _convertVoice(
-      AudioService audioService, ElevenLabsService elevenLabsService) async {
-    try {
-      final convertedPath = await elevenLabsService.convertAudio(
-        audioFilePath: audioService.recordedFilePath!,
-        voiceId: _selectedVoiceId!,
-      );
+  void _simulateConversion() async {
+    setState(() {
+      _isConverting = true;
+    });
 
-      setState(() {
-        _convertedAudioPath = convertedPath;
-      });
+    // Simulate AI processing time
+    await Future.delayed(Duration(seconds: 3));
 
-      if (_convertedAudioPath != null) {
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 12),
-                Text('Voice converted successfully!'),
-              ],
-            ),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
+    setState(() {
+      _isConverting = false;
+      _conversionComplete = true;
+    });
 
-        // Auto-play the result
-        await audioService.startPlayback(filePath: _convertedAudioPath!);
-      } else {
-        // Show error message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.error, color: Colors.white),
-                SizedBox(width: 12),
-                Text('Conversion failed. Please try again.'),
-              ],
-            ),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    // Show success message
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.white),
+            SizedBox(width: 12),
+            Text('Demo: Voice converted successfully!'),
+          ],
         ),
-      );
-    }
-  }
-
-  Future<void> _saveConvertedAudio(FileService fileService) async {
-    if (_convertedAudioPath != null) {
-      await fileService.saveAudioFile(
-        _convertedAudioPath!,
-        fileName:
-            'celebrity_${_selectedVoiceName}_${DateTime.now().millisecondsSinceEpoch}.mp3',
-      );
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.save, color: Colors.white),
-              SizedBox(width: 12),
-              Text('Audio saved to My Files!'),
-            ],
-          ),
-          backgroundColor: Colors.deepPurple,
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
-    }
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
   }
 }
 

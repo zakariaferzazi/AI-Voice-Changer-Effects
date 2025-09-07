@@ -25,28 +25,55 @@ class ElevenLabsService with ChangeNotifier {
   }
 
   Future<void> fetchVoices() async {
+    debugPrint('🔄 Starting to fetch voices...');
+    debugPrint('🔑 Using API Key: ${_apiKey.substring(0, 10)}...');
+
     _isLoading = true;
     notifyListeners();
 
     try {
+      final uri = Uri.parse('$_baseUrl/voices');
+      debugPrint('📡 Making request to: $uri');
+
       final response = await http.get(
-        Uri.parse('$_baseUrl/voices'),
+        uri,
         headers: {'xi-api-key': _apiKey},
       );
+
+      debugPrint('📥 Response status: ${response.statusCode}');
+      debugPrint('📥 Response body length: ${response.body.length}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         _voices = List<Map<String, dynamic>>.from(data['voices']);
+        debugPrint('✅ Successfully loaded ${_voices.length} voices');
+
+        // Print first few voice names for debugging
+        if (_voices.isNotEmpty) {
+          debugPrint('🎤 Sample voices:');
+          for (int i = 0; i < (_voices.length > 3 ? 3 : _voices.length); i++) {
+            debugPrint(
+                '   - ${_voices[i]['name']} (${_voices[i]['voice_id']})');
+          }
+        }
       } else {
-        debugPrint(
-            'Failed to load voices: ${response.statusCode} - ${response.body}');
+        debugPrint('❌ Failed to load voices: ${response.statusCode}');
+        debugPrint('❌ Error response: ${response.body}');
+
+        if (response.statusCode == 401) {
+          debugPrint('🔒 Authentication failed - check your API key');
+        } else if (response.statusCode == 429) {
+          debugPrint('⏰ Rate limit exceeded - wait before retrying');
+        }
       }
     } catch (e) {
-      debugPrint('Error fetching voices: $e');
+      debugPrint('💥 Exception while fetching voices: $e');
+      debugPrint('💥 Exception type: ${e.runtimeType}');
     }
 
     _isLoading = false;
     notifyListeners();
+    debugPrint('🏁 Fetch voices completed. Total voices: ${_voices.length}');
   }
 
   Future<String?> convertAudio({
