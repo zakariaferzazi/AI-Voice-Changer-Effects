@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:voice_changer_app/screens/SplachScreen.dart';
 import 'package:voice_changer_app/screens/celebrity_voice/celebrity_voice_screen.dart';
 import 'package:voice_changer_app/screens/my_files/my_files_screen.dart';
 import 'package:voice_changer_app/screens/text_to_speech/text_to_speech_screen.dart';
-import 'package:voice_changer_app/screens/voice_effects/voice_effects_screen.dart';
 import 'package:voice_changer_app/services/audio_service.dart';
 import 'package:voice_changer_app/services/elevenlabs_service.dart';
 import 'package:voice_changer_app/services/text_to_speech_service.dart';
-import 'package:voice_changer_app/services/voice_effects_service.dart';
 import 'package:voice_changer_app/services/file_service.dart';
-import 'package:voice_changer_app/screens/celebrity_voice/celebrity_voice_demo_screen.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  MobileAds.instance.initialize(); // Initialize the AdMob SDK
   runApp(const MyApp());
 }
 
@@ -24,7 +27,6 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AudioService()),
         ChangeNotifierProvider(create: (_) => ElevenLabsService()),
-        ChangeNotifierProvider(create: (_) => VoiceEffectsService()),
         ChangeNotifierProvider(create: (_) => TextToSpeechService()),
         ChangeNotifierProvider(create: (_) => FileService()),
       ],
@@ -83,7 +85,7 @@ class MyApp extends StatelessWidget {
             hintStyle: TextStyle(color: Colors.grey[500]),
           ),
         ),
-        home: const MyHomePage(),
+        home: const SplashScreen(),
       ),
     );
   }
@@ -112,24 +114,114 @@ class _MyHomePageState extends State<MyHomePage> {
     super.dispose();
   }
 
+  void shareAppLink() {
+    Share.share(
+      'Check out this app: https://play.google.com/store/apps/details?id=com.ai.voice.changer',
+      subject: 'AI Voice Changer App',
+    );
+  }
+
+  Future<void> launchAppLink() async {
+    final Uri url = Uri.parse(
+        'https://play.google.com/store/apps/details?id=com.ai.voice.changer');
+    await launchUrl(url);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true, // This makes body extend behind AppBar
+      extendBody: true,
       appBar: AppBar(
-        title:
-            const Text('Voice Changer – AI Celebrity Voice & Text-to-Speech'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.preview),
-            tooltip: 'Preview Features',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CelebrityVoiceDemoScreen(),
+        backgroundColor: Colors.transparent, // Make AppBar transparent
+        elevation: 0,
+        toolbarHeight: 70,
+        title: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color:
+                Colors.white.withOpacity(0.15), // Semi-transparent background
+            borderRadius: BorderRadius.circular(25),
+            border: Border.all(color: Colors.white.withOpacity(0.2)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // AI/Magic Icon Container
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.purple[400]!,
+                      Colors.blue[400]!,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              );
-            },
+                child: const Icon(
+                  Icons.auto_awesome,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'AI Voice Changer',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+        centerTitle: false,
+        actions: [
+          // Search Icon
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withOpacity(0.2)),
+            ),
+            child: IconButton(
+              icon: Icon(
+                Icons.star,
+                color: Colors.white,
+                size: 22,
+              ),
+              tooltip: 'Review',
+              onPressed: () {
+                launchAppLink();
+              },
+            ),
+          ),
+          // Share Icon
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withOpacity(0.2)),
+            ),
+            child: IconButton(
+              icon: Icon(
+                Icons.share,
+                color: Colors.white,
+                size: 22,
+              ),
+              tooltip: 'Share',
+              onPressed: () {
+                shareAppLink();
+              },
+            ),
           ),
         ],
       ),
@@ -142,37 +234,55 @@ class _MyHomePageState extends State<MyHomePage> {
         },
         children: const [
           CelebrityVoiceScreen(),
-          VoiceEffectsScreen(),
           TextToSpeechScreen(),
           MyFilesScreen(),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-            _pageController.jumpToPage(index);
-          });
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.mic_rounded),
-            label: 'Celebrity',
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color:
+              Colors.white, // Set background color of the BottomNavigationBar
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(30), // Circular top-left corner
+            topRight: Radius.circular(30), // Circular top-right corner
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.audiotrack_rounded),
-            label: 'Effects',
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              spreadRadius: 0,
+              blurRadius: 10,
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(30),
+            topRight: Radius.circular(30),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.speaker_notes_rounded),
-            label: 'TTS',
+          child: BottomNavigationBar(
+            currentIndex: _currentIndex,
+            onTap: (index) {
+              setState(() {
+                _currentIndex = index;
+                _pageController.jumpToPage(index);
+              });
+            },
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.mic_rounded),
+                label: 'Celebrity',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.speaker_notes_rounded),
+                label: 'TTS',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.folder_copy_rounded),
+                label: 'My Files',
+              ),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.folder_copy_rounded),
-            label: 'My Files',
-          ),
-        ],
+        ),
       ),
     );
   }

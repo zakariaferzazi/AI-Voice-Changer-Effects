@@ -1,0 +1,20 @@
+{
+  "buildFiles": [
+    "C:\\flutter\\packages\\flutter_tools\\gradle\\src\\main\\groovy\\CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "D:\\Development_Files\\Android\\Sdk\\cmake\\3.22.1\\bin\\ninja.exe",
+      "-C",
+      "D:\\Development_Files\\Android iOS Apps\\AI Apps\\aivoicechangercursor\\voice_changer_app\\android\\app\\.cxx\\RelWithDebInfo\\85m43d1s\\armeabi-v7a",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "D:\\Development_Files\\Android\\Sdk\\cmake\\3.22.1\\bin\\ninja.exe",
+    "-C",
+    "D:\\Development_Files\\Android iOS Apps\\AI Apps\\aivoicechangercursor\\voice_changer_app\\android\\app\\.cxx\\RelWithDebInfo\\85m43d1s\\armeabi-v7a",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {}
+}
