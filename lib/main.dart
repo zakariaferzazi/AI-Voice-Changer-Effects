@@ -116,14 +116,14 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void shareAppLink() {
     Share.share(
-      'Check out this app: https://play.google.com/store/apps/details?id=com.ai.voice.changer',
+      'Check out this app: https://play.google.com/store/apps/details?id=com.flutterdragon.ai.voice.changer',
       subject: 'AI Voice Changer App',
     );
   }
 
   Future<void> launchAppLink() async {
     final Uri url = Uri.parse(
-        'https://play.google.com/store/apps/details?id=com.ai.voice.changer');
+        'https://play.google.com/store/apps/details?id=com.flutterdragon.ai.voice.changer');
     await launchUrl(url);
   }
 
